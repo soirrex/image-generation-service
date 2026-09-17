@@ -22,6 +22,10 @@ export class LoggerService {
     this.logger.info(meta, msg);
   }
 
+  warn(msg: string, meta?: Record<string, unknown>) {
+    this.logger.warn(meta, msg);
+  }
+
   error(msg: string, meta?: Record<string, unknown>) {
     this.logger.error(meta, msg);
   }
