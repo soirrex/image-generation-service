@@ -42,7 +42,7 @@ export class KafkaProducerService {
   async sendImageGenerationRequest(
     id: string,
     name: string,
-    promt: string,
+    prompt: string,
     width: number,
     height: number,
   ): Promise<void> {
@@ -51,7 +51,7 @@ export class KafkaProducerService {
       messages: [
         {
           key: id,
-          value: JSON.stringify({ id, name, promt, width, height }),
+          value: JSON.stringify({ id, name, prompt, width, height }),
         },
       ],
     });

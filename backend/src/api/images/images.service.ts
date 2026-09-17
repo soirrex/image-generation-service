@@ -3,10 +3,11 @@ import Joi from "joi";
 import { BadRequestError } from "../../common/classes/error.class.js";
 import { ImagesRepository } from "../../repositories/images.repository.js";
 import { KafkaProducerService } from "../../services/kafka.producer.service.js";
+import { LoggerService } from "../../services/logger.service.js";
 
 const GenerateImageSchema = Joi.object({
   name: Joi.string().required().min(1).max(100).trim(),
-  promt: Joi.string().required().min(10).max(1000).trim(),
+  prompt: Joi.string().required().min(10).max(1000).trim(),
   width: Joi.number().required().integer().min(100).max(1920),
   height: Joi.number().required().integer().min(100).max(1920),
 });
@@ -21,6 +22,7 @@ export class ImagesService {
   constructor(
     @inject(ImagesRepository) private imagesRepository: ImagesRepository,
     @inject(KafkaProducerService) private kafkaProducer: KafkaProducerService,
+    @inject(LoggerService) private logger: LoggerService,
   ) {}
 
   async generate(userId: string, body: object): Promise<object> {
@@ -33,15 +35,29 @@ export class ImagesService {
       throw new BadRequestError(error.message);
     }
 
-    const image = await this.imagesRepository.create(userId, value.name, value.promt);
-
-    await this.kafkaProducer.sendImageGenerationRequest(
-      image.id.toString(),
-      image.name,
-      image.promt,
+    const image = await this.imagesRepository.create(
+      userId,
+      value.name,
+      value.prompt,
       value.width,
       value.height,
     );
+
+    try {
+      await this.kafkaProducer.sendImageGenerationRequest(
+        image.id.toString(),
+        image.name,
+        image.prompt,
+        value.width,
+        value.height,
+      );
+
+      await this.imagesRepository.removeFromOutbox(image.id);
+    } catch (err: unknown) {
+      this.logger.error("Failed to send to Kafka", {
+        error: (err as Error).message || "Unknown error",
+      });
+    }
 
     return {
       message: "Image generation started",

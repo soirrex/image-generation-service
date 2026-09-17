@@ -37,10 +37,29 @@ model Image {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   name        String
-  promt       String
+  prompt      String
   status      IMAGE_STATUS @default(generation)
+  width       Int
+  height      Int
   completedAt DateTime?
+
+  imageOutboxes ImageOutbox[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ImageOutbox {
+  id BigInt @id @default(autoincrement())
+
+  imageId BigInt @unique
+  image   Image  @relation(fields: [imageId], references: [id], onDelete: Cascade)
+
+  value    Json
+  attempts Int  @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
 }
