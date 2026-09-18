@@ -75,10 +75,11 @@ export class ImagesRepository {
     });
   }
 
-  async getById(imageId: bigint): Promise<Image | null> {
-    const image = await prisma.image.findUnique({
+  async getById(userId: string, imageId: bigint): Promise<Image | null> {
+    const image = await prisma.image.findFirst({
       where: {
         id: imageId,
+        userId: userId,
       },
       select: this.selectedImageData,
     });
@@ -117,10 +118,11 @@ export class ImagesRepository {
     return { images: elements, currentPage: page, totalPages: Math.ceil(count / limit) };
   }
 
-  async removeById(imageId: bigint) {
-    await prisma.image.delete({
+  async deleteById(userId: string, imageId: bigint): Promise<void> {
+    await prisma.image.deleteMany({
       where: {
         id: imageId,
+        userId: userId,
       },
     });
   }

@@ -1,6 +1,6 @@
 import { inject, injectable } from "inversify";
 import Joi from "joi";
-import { BadRequestError } from "../../common/classes/error.class.js";
+import { BadRequestError, NotFoundError } from "../../common/classes/error.class.js";
 import { ImagesRepository } from "../../repositories/images.repository.js";
 import { KafkaProducerService } from "../../services/kafka.producer.service.js";
 import { LoggerService } from "../../services/logger.service.js";
@@ -84,5 +84,23 @@ export class ImagesService {
     return result;
   }
 
-  async deleveById(userId: string, imageId: string) {}
+  async deleteById(userId: string, imageId: string) {
+    let imageIdBigint: bigint;
+
+    try {
+      imageIdBigint = BigInt(imageId);
+    } catch {
+      throw new BadRequestError('"imageId" must be a valid integer string');
+    }
+
+    const image = await this.imagesRepository.getById(userId, imageIdBigint);
+
+    if (!image) throw new NotFoundError("Image not found");
+
+    await this.imagesRepository.deleteById(userId, imageIdBigint);
+
+    return {
+      message: "Image was deleted successfully",
+    };
+  }
 }

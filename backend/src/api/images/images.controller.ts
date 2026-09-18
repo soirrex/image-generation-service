@@ -139,6 +139,53 @@ export class ImagesController extends ApiControllerBase {
       this.getAll.bind(this),
     );
 
+    /**
+     * @swagger
+     * /api/images/{id}:
+     *   delete:
+     *     summary: Delete image by id
+     *     description: Deletes an image owned by the authenticated user
+     *     tags: [Images]
+     *     security:
+     *       - cookieAuth: []
+     *     parameters:
+     *       - in: path
+     *         name: id
+     *         required: true
+     *         description: Image id (BigInt as string)
+     *         schema:
+     *           type: string
+     *           example: "1"
+     *     responses:
+     *       200:
+     *         description: Image deleted successfully
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 message:
+     *                   type: string
+     *                   example: Image was deleted successfully
+     *       400:
+     *         description: Invalid image id
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorResponse'
+     *       401:
+     *         description: Unauthorized
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorResponse'
+     *       404:
+     *         description: Image not found
+     *         content:
+     *           application/json:
+     *             schema:
+     *               $ref: '#/components/schemas/ErrorResponse'
+     */
     this.router.delete(
       "/:id",
       this.authMiddleware.handle.bind(this.authMiddleware),
@@ -161,5 +208,11 @@ export class ImagesController extends ApiControllerBase {
     res.status(200).json(result);
   }
 
-  private async deleteById(req: Request, res: Response) {}
+  private async deleteById(req: Request, res: Response) {
+    if (!req.userId) throw new UnauthorizedError("Unauthorized");
+    if (!req.params.id) throw new BadRequestError('"id" is required');
+
+    const result = await this.imagesService.deleteById(req.userId, req.params.id.toString());
+    res.status(200).json(result);
+  }
 }
