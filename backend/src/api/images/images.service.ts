@@ -31,9 +31,7 @@ export class ImagesService {
       stripUnknown: true,
     });
 
-    if (error) {
-      throw new BadRequestError(error.message);
-    }
+    if (error) throw new BadRequestError(error.message);
 
     const image = await this.imagesRepository.create(
       userId,
@@ -70,12 +68,21 @@ export class ImagesService {
       stripUnknown: true,
     });
 
-    if (error) {
-      throw new BadRequestError(error.message);
-    }
+    if (error) throw new BadRequestError(error.message);
 
-    return {
-      message: "zxc",
+    const images = await this.imagesRepository.getAllByUserId(userId, value.limit, value.page);
+
+    const result = {
+      totalPages: images.totalPages,
+      curentPage: images.currentPage,
+      images: images.images.map((el) => ({
+        ...el,
+        id: el.id.toString(),
+      })),
     };
+
+    return result;
   }
+
+  async deleveById(userId: string, imageId: string) {}
 }

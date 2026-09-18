@@ -72,11 +72,6 @@ const options: swaggerJsdoc.Options = {
           type: "object",
           properties: {
             id: { type: "string", example: "1", description: "Image id (BigInt as string)" },
-            userId: {
-              type: "string",
-              format: "uuid",
-              example: "550e8400-e29b-41d4-a716-446655440000",
-            },
             name: { type: "string", example: "My image" },
             promt: {
               type: "string",
