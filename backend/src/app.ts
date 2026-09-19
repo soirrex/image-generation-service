@@ -33,13 +33,20 @@ export class App {
     this.app.use(express.json());
     this.app.use(cookieParser());
 
+    const allowedUrls =
+      this.envConfig
+        .get("ALLOWED_URLS")
+        ?.split(",")
+        .map((url) => url.trim())
+        .filter(Boolean) ?? [];
+
     const corsOptions = {
       origin: (
         origin: string | undefined,
         callback: (err: Error | null, allow?: boolean) => void,
       ) => {
         if (!origin) return callback(null, true);
-        if (["http://localhost:5173", this.envConfig.get("MINIAPP_URL")].includes(origin)) {
+        if (allowedUrls.includes(origin)) {
           return callback(null, true);
         }
         callback(new Error("CORS policy: origin not allowed"), false);

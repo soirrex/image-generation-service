@@ -3,12 +3,6 @@ import { Kafka, logLevel } from "kafkajs";
 import { EnvConfig } from "./env.config.js";
 import { LoggerService } from "../services/logger.service.js";
 
-export const KAFKA_TOPICS = {
-  IMAGE_GENERATION: "image.generation.requested",
-} as const;
-
-export type KafkaTopic = (typeof KAFKA_TOPICS)[keyof typeof KAFKA_TOPICS];
-
 @injectable()
 export class KafkaConfig {
   public readonly kafka: Kafka;

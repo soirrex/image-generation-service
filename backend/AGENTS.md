@@ -11,7 +11,8 @@
 - Prisma ORM + `@prisma/adapter-pg`
 - InversifyJS (`reflect-metadata`)
 - JWT (`jsonwebtoken`), pino + pino-pretty logging
-- Swagger (`swagger-jsdoc`, `swagger-ui-express`), Joi not yet used
+- Swagger (`swagger-jsdoc`, `swagger-ui-express`), Joi for request validation
+- Kafka (`kafkajs`), image generation requests to the `image-generation` topic
 - Jest + ts-jest + supertest for tests
 
 ## Structure
@@ -23,7 +24,10 @@ src/
 │   │   ├── auth.controller.ts                       # Auth endpoints
 │   │   ├── auth.service.ts                          # Auth logic
 │   │   └── auth.service.test.ts                     # Auth tests
-│
+│   ├── images                                     # Images module (auth required)
+│   │   ├── images.controller.ts                     # Images endpoints
+│   │   ├── images.service.ts                        # Images logic + outbox + Kafka publish
+│   │   └── images.service.test.ts                   # Images tests
 │
 ├── common/classes                               # Shared bases
 │   ├── error.class.ts                            # Errors
@@ -32,6 +36,7 @@ src/
 │
 ├── config/                                      # App config
 │   ├── env.config.ts                              # Env helper
+│   ├── kafka.config.ts                            # Kafka client + brokers config
 │   └── swagger.config.ts                          # Swagger spec
 │
 ├── middlewares/                                 # Express middlewares
@@ -41,12 +46,14 @@ src/
 │
 ├── repositories/                                # DB layer
 │   ├── user.repository.ts                         # User storage
+│   └── images.repository.ts                       # Image + outbox storage
 │
 ├── services/                                    # Shared services
 │   ├── jwt.service.ts                             # JWT helper
-│   └── logger.service.ts                          # Logger
+│   ├── logger.service.ts                          # Logger
+│   └── kafka.producer.service.ts                  # Kafka producer (image-generation topic)
 │
-├── generated/                                   # Generated Prisma client — DON'T TOUCH
+├── generated/                                   # Generated Prisma client
 │
 ├── app.ts                                       # App setup
 ├── container.ts                                 # DI container
@@ -61,6 +68,10 @@ Root files:
 ├── types/express.d.ts                           # Type extensions
 ├── tests/                                       # E2E tests
 ├── prisma.config.js                             # Prisma settings
+├── Dockerfile                                   # Prod image (npm i → prisma generate → build + start)
+├── .dockerignore                                # Docker build excludes
+├── .env                                         # Local secrets — NOT in git, see .env.example
+├── .env.example                                 # Documented env template
 ├── tsconfig.json                                # TypeScript settings
 ├── eslint.config.ts                             # Linter settings
 ├── jest.config.js                               # Test settings
@@ -72,15 +83,15 @@ Root files:
 
 ## NPM Commands
 
-| Command            | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `npm run dev`      | Run with hot reload (jiti)                        |
-| `npm run build`    | Compile TypeScript to `dist/`                     |
-| `npm start`        | Run compiled build from `dist/index.js`           |
-| `npm run test:unit`| Unit tests (`*.test.ts` inside `src/`)            |
-| `npm run test:e2e` | E2E tests (supertest, `tests/`)                   |
-| `npm run lint`     | ESLint with autofix (`src/**/*.ts`)               |
-| `npm run format`   | Prettier (`src/**/*.ts`) + `prisma format`        |
+| Command             | Description                             |
+| ------------------- | --------------------------------------- |
+| `npm run dev`       | Run with hot reload (jiti)              |
+| `npm run build`     | Compile TypeScript to `dist/`           |
+| `npm start`         | Run compiled build from `dist/index.js` |
+| `npm run test:unit` | Unit tests (`*.test.ts` inside `src/`)  |
+| `npm run test:e2e`  | E2E tests (supertest, `tests/`)         |
+| `npm run lint`      | ESLint with autofix                     |
+| `npm run format`    | Prettier + `prisma format`              |
 
 ## Key Points
 
@@ -134,8 +145,11 @@ export class ExampleController extends ApiControllerBase {
 New controllers and services must be registered in `src/container.ts`:
 
 ```ts
-inversifyContainer.bind(ApiControllerBase).to(AuthController).inSingletonScope()
-inversifyContainer.bind(<EndpointName>Service).toSelf().inSingletonScope();
+inversifyContainer.bind(ApiControllerBase).to(AuthController).inSingletonScope();
+inversifyContainer
+  .bind(<EndpointName>Service)
+  .toSelf()
+  .inSingletonScope();
 ```
 
 Controller are auto-registered in `src/app.ts` via `@multiInject(ApiControllerBase)` and use `baseEndpoint` for endpoint names.
