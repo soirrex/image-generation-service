@@ -85,6 +85,8 @@ export class ImagesService {
   }
 
   async deleteById(userId: string, imageId: string) {
+    if (imageId.length < 1) throw new BadRequestError('"imageId" must be a valid integer string');
+
     let imageIdBigint: bigint;
 
     try {
