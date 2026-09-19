@@ -5,7 +5,11 @@ import { AuthService } from "./auth.service.js";
 import { UserRepository } from "../../repositories/user.repository.js";
 import { JwtService } from "../../services/jwt.service.js";
 import { User } from "../../generated/prisma/client.js";
-import { BadRequestError, ConflictError } from "../../common/classes/error.class.js";
+import {
+  BadRequestError,
+  ConflictError,
+  UnauthorizedError,
+} from "../../common/classes/error.class.js";
 
 describe("AuthService", () => {
   let service: AuthService;
@@ -169,12 +173,12 @@ describe("AuthService", () => {
       expect(mockResponse.cookie).not.toHaveBeenCalled();
     });
 
-    it("should throw error 404 if email not found", async () => {
+    it("should throw error 401 if email not found", async () => {
       mockUserRepository.getByEmail.mockResolvedValue(null);
 
       expect(
         service.login({ email: mockUser.email, password: "password" }, mockResponse),
-      ).rejects.toThrow(new ConflictError("Invalid email or password"));
+      ).rejects.toThrow(new UnauthorizedError("Invalid email or password"));
 
       expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(mockUser.email);
 
@@ -182,7 +186,7 @@ describe("AuthService", () => {
       expect(mockResponse.cookie).not.toHaveBeenCalled();
     });
 
-    it("should throw error 409 if password is invalid", async () => {
+    it("should throw error 401 if password is invalid", async () => {
       mockUserRepository.getByEmail.mockResolvedValue(mockUser);
 
       // eslint-disable-next-line
@@ -190,7 +194,7 @@ describe("AuthService", () => {
 
       expect(
         service.login({ email: mockUser.email, password: mockUser.password }, mockResponse),
-      ).rejects.toThrow(new ConflictError("Invalid email or password"));
+      ).rejects.toThrow(new UnauthorizedError("Invalid email or password"));
 
       expect(mockUserRepository.getByEmail).toHaveBeenCalledWith(mockUser.email);
 

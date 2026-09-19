@@ -9,7 +9,7 @@ export default defineConfig([
     plugins: { js },
     extends: ["js/recommended"],
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
       "no-unused-vars": "warn",
       "no-undef": "warn",
       "no-console": "warn",

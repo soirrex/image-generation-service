@@ -1,7 +1,11 @@
 import { Response } from "express";
 import { inject, injectable } from "inversify";
 import Joi from "joi";
-import { BadRequestError, ConflictError } from "../../common/classes/error.class.js";
+import {
+  BadRequestError,
+  ConflictError,
+  UnauthorizedError,
+} from "../../common/classes/error.class.js";
 import { UserRepository } from "../../repositories/user.repository.js";
 import bcrypt from "bcrypt";
 import { JwtService } from "../../services/jwt.service.js";
@@ -60,11 +64,11 @@ export class AuthService {
 
     const user = await this.userRepository.getByEmail(value.email);
 
-    if (!user) throw new ConflictError("Invalid email or password");
+    if (!user) throw new UnauthorizedError("Invalid email or password");
 
     const validatePasswrod = await bcrypt.compare(value.password, user.password);
 
-    if (!validatePasswrod) throw new ConflictError("Invalid email or password");
+    if (!validatePasswrod) throw new UnauthorizedError("Invalid email or password");
 
     const token = this.jwtService.create(user.id);
 

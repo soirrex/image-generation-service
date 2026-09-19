@@ -103,7 +103,7 @@ export class AuthController extends ApiControllerBase {
      *           application/json:
      *             schema:
      *               $ref: '#/components/schemas/ErrorResponse'
-     *       409:
+     *       401:
      *         description: Invalid email or password
      *         content:
      *           application/json:
