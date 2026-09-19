@@ -39,19 +39,13 @@ export class KafkaProducerService {
     });
   }
 
-  async sendImageGenerationRequest(
-    id: string,
-    name: string,
-    prompt: string,
-    width: number,
-    height: number,
-  ): Promise<void> {
+  async sendImageGenerationRequest(id: string, name: string, prompt: string): Promise<void> {
     await this.producer.send({
       topic: "image-generation",
       messages: [
         {
           key: id,
-          value: JSON.stringify({ id, name, prompt, width, height }),
+          value: JSON.stringify({ id, name, prompt }),
         },
       ],
     });

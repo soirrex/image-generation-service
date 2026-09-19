@@ -17,8 +17,6 @@ describe("ImagesService", () => {
   const validGenerateBody = {
     name: "Test image",
     prompt: "A beautiful landscape with mountains and a lake",
-    width: 512,
-    height: 512,
   };
 
   const mockImage: Image = {
@@ -26,8 +24,6 @@ describe("ImagesService", () => {
     name: "Test image",
     prompt: "A beautiful landscape with mountains and a lake",
     status: "generation",
-    width: 512,
-    height: 512,
     completedAt: null,
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
@@ -65,49 +61,17 @@ describe("ImagesService", () => {
   describe("generate", () => {
     it.each([
       [{}, '"name" is required'],
-      [{ prompt: "A beautiful landscape", width: 512, height: 512 }, '"name" is required'],
+      [{ prompt: "A beautiful landscape" }, '"name" is required'],
+      [{ name: "", prompt: "A beautiful landscape" }, '"name" is not allowed to be empty'],
       [
-        { name: "", prompt: "A beautiful landscape", width: 512, height: 512 },
-        '"name" is not allowed to be empty',
-      ],
-      [
-        { name: "a".repeat(101), prompt: "A beautiful landscape", width: 512, height: 512 },
+        { name: "a".repeat(101), prompt: "A beautiful landscape" },
         '"name" length must be less than or equal to 100 characters long',
       ],
-      [{ name: "Test", width: 512, height: 512 }, '"prompt" is required'],
+      [{ name: "Test" }, '"prompt" is required'],
+      [{ name: "Test", prompt: "short" }, '"prompt" length must be at least 10 characters long'],
       [
-        { name: "Test", prompt: "short", width: 512, height: 512 },
-        '"prompt" length must be at least 10 characters long',
-      ],
-      [
-        { name: "Test", prompt: "a".repeat(1001), width: 512, height: 512 },
+        { name: "Test", prompt: "a".repeat(1001) },
         '"prompt" length must be less than or equal to 1000 characters long',
-      ],
-      [{ name: "Test", prompt: "A beautiful landscape", height: 512 }, '"width" is required'],
-      [
-        { name: "Test", prompt: "A beautiful landscape", width: 99, height: 512 },
-        '"width" must be greater than or equal to 100',
-      ],
-      [
-        { name: "Test", prompt: "A beautiful landscape", width: 1921, height: 512 },
-        '"width" must be less than or equal to 1920',
-      ],
-      [
-        { name: "Test", prompt: "A beautiful landscape", width: 512.5, height: 512 },
-        '"width" must be an integer',
-      ],
-      [{ name: "Test", prompt: "A beautiful landscape", width: 512 }, '"height" is required'],
-      [
-        { name: "Test", prompt: "A beautiful landscape", width: 512, height: 99 },
-        '"height" must be greater than or equal to 100',
-      ],
-      [
-        { name: "Test", prompt: "A beautiful landscape", width: 512, height: 1921 },
-        '"height" must be less than or equal to 1920',
-      ],
-      [
-        { name: "Test", prompt: "A beautiful landscape", width: 512, height: 512.5 },
-        '"height" must be an integer',
       ],
     ])("should throw BadRequestError for invalid body: %s", async (body, message) => {
       await expect(service.generate(userId, body)).rejects.toThrow(new BadRequestError(message));
@@ -128,15 +92,11 @@ describe("ImagesService", () => {
         userId,
         validGenerateBody.name,
         validGenerateBody.prompt,
-        validGenerateBody.width,
-        validGenerateBody.height,
       );
       expect(mockKafkaProducer.sendImageGenerationRequest).toHaveBeenCalledWith(
         mockImage.id.toString(),
         mockImage.name,
         mockImage.prompt,
-        validGenerateBody.width,
-        validGenerateBody.height,
       );
       expect(mockImagesRepository.removeFromOutbox).toHaveBeenCalledWith(mockImage.id);
       expect(mockLogger.error).not.toHaveBeenCalled();

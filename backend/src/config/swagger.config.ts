@@ -50,20 +50,6 @@ const options: swaggerJsdoc.Options = {
               example: "A beautiful sunset over mountains with clouds",
               description: "Prompt for image generation",
             },
-            width: {
-              type: "integer",
-              minimum: 100,
-              maximum: 1920,
-              example: 1024,
-              description: "Image width",
-            },
-            height: {
-              type: "integer",
-              minimum: 100,
-              maximum: 1920,
-              example: 1024,
-              description: "Image height",
-            },
           },
         },
 

@@ -39,8 +39,6 @@ model Image {
   name        String
   prompt      String
   status      IMAGE_STATUS @default(generation)
-  width       Int
-  height      Int
   completedAt DateTime?
 
   imageOutboxes ImageOutbox[]

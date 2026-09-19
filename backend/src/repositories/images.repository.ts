@@ -7,8 +7,6 @@ export interface Image {
   name: string;
   prompt: string;
   status: "generation" | "failed" | "completed";
-  width: number;
-  height: number;
   completedAt: Date | null;
   updatedAt: Date;
   createdAt: Date;
@@ -21,20 +19,12 @@ export class ImagesRepository {
     name: true,
     prompt: true,
     status: true,
-    width: true,
-    height: true,
     completedAt: true,
     updatedAt: true,
     createdAt: true,
   };
 
-  async create(
-    userId: string,
-    name: string,
-    prompt: string,
-    width: number,
-    height: number,
-  ): Promise<Image> {
+  async create(userId: string, name: string, prompt: string): Promise<Image> {
     const image = await prisma.$transaction(async (tc) => {
       const image = await tc.image.create({
         data: {
@@ -42,8 +32,6 @@ export class ImagesRepository {
           name,
           prompt,
           status: "generation",
-          width,
-          height,
         },
         select: this.selectedImageData,
       });
@@ -55,8 +43,6 @@ export class ImagesRepository {
             id: image.id.toString(),
             name: image.name,
             prompt: image.prompt,
-            height: height,
-            width: width,
           },
         },
       });
