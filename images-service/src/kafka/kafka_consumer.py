@@ -2,7 +2,9 @@ from kafka import KafkaConsumer
 import os
 import json
 from pydantic import BaseModel, ValidationError
+import uuid
 
+from ..services.s3 import S3Service
 from ..services.image_generation import ImageGeneration
 
 
@@ -13,8 +15,7 @@ class MessageData(BaseModel):
 
 
 class KafkaConsumerService:
-
-    def __init__(self, image_generation: ImageGeneration):
+    def __init__(self, image_generation: ImageGeneration, s3: S3Service):
         brokers = os.getenv("KAFKA_BROKERS")
         topic = os.getenv("KAFKA_CONSUMER_TOPIC")
         group_id = os.getenv("KAFKA_GROUP_ID")
@@ -41,6 +42,7 @@ class KafkaConsumerService:
         )
 
         self._image_generation = image_generation
+        self._s3 = s3
 
     def listen(self):
         for message in self._consumer:
@@ -53,7 +55,8 @@ class KafkaConsumerService:
                         f'Kafka key "{message.key}" does not match id "{data.id}"'
                     )
 
-                image = self._image_generation.generate(data.prompt).show()
+                image = self._image_generation.generate(data.prompt)
+                image_url = self._s3.upload(image, f"{uuid.uuid4()}.png")
             except ValidationError as e:
                 print(e.errors()[0]["msg"])
                 continue
