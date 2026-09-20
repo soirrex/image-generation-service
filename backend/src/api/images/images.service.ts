@@ -7,7 +7,7 @@ import { LoggerService } from "../../services/logger.service.js";
 
 const GenerateImageSchema = Joi.object({
   name: Joi.string().required().min(1).max(100).trim(),
-  prompt: Joi.string().required().min(10).max(1000).trim(),
+  prompt: Joi.string().required().min(1).max(1000).trim(),
 });
 
 const GetAllImagesSchema = Joi.object({

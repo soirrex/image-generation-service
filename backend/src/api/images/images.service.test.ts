@@ -68,7 +68,7 @@ describe("ImagesService", () => {
         '"name" length must be less than or equal to 100 characters long',
       ],
       [{ name: "Test" }, '"prompt" is required'],
-      [{ name: "Test", prompt: "short" }, '"prompt" length must be at least 10 characters long'],
+      [{ name: "Test", prompt: "" }, '"prompt" is not allowed to be empty'],
       [
         { name: "Test", prompt: "a".repeat(1001) },
         '"prompt" length must be less than or equal to 1000 characters long',
