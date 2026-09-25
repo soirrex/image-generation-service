@@ -3,9 +3,11 @@ import boto3
 from io import BytesIO
 import os
 
+from .logger import LoggerService
+
 
 class S3Service:
-    def __init__(self):
+    def __init__(self, logger: LoggerService):
         self._endpoint_url = os.getenv("ENDPOINT_URL")
         aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
         aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -29,21 +31,35 @@ class S3Service:
             region_name="us-east-1",
         )
 
+        self._logger = logger
+
+        self._logger.info(
+            "S3 client created", endpoint=self._endpoint_url, bucket=self._bucket_name
+        )
+
     def upload(self, image: Image.Image, name: str) -> str:
-        with BytesIO() as buffer:
-            if image.mode not in ("RGB", "RGBA"):
-                image = image.convert("RGBA")
+        self._logger.debug("Uploading image to S3", name=name, bucket=self._bucket_name)
+        try:
+            with BytesIO() as buffer:
+                if image.mode not in ("RGB", "RGBA"):
+                    image = image.convert("RGBA")
 
-            image.save(buffer, format="PNG")
-            buffer.seek(0)
+                image.save(buffer, format="PNG")
+                buffer.seek(0)
 
-            self._s3.upload_fileobj(
-                buffer,
-                self._bucket_name,
-                name,
-                ExtraArgs={
-                    "ContentType": "image/png",
-                },
-            )
+                self._s3.upload_fileobj(
+                    buffer,
+                    self._bucket_name,
+                    name,
+                    ExtraArgs={
+                        "ContentType": "image/png",
+                    },
+                )
+        except Exception:
+            message = "Failed to upload image to S3"
+            self._logger.error(message, name=name, bucket=self._bucket_name)
+            raise Exception(message)
 
-        return f"{self._endpoint_url}/{self._bucket_name}/{name}"
+        url = f"{self._endpoint_url}/{self._bucket_name}/{name}"
+        self._logger.info("Image uploaded to S3", name=name, url=url)
+        return url
