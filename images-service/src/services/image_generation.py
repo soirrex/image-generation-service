@@ -19,7 +19,6 @@ class ImageGeneration:
                 "stablediffusionapi/anything-v5",
                 torch_dtype=torch.float16,
                 use_safetensors=True,
-                add_watermarker=False,
             ).to("cuda")
         else:
             pass
