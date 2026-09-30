@@ -16,6 +16,7 @@ import { ImagesController } from "./api/images/images.controller.js";
 import { ImagesService } from "./api/images/images.service.js";
 import { UserRepository } from "./repositories/user.repository.js";
 import { ImagesRepository } from "./repositories/images.repository.js";
+import { KafkaConsumerService } from "./services/kafka.consumer.service.js";
 
 export const inversifyContainer = new Container();
 
@@ -34,6 +35,7 @@ inversifyContainer.bind(RequestLoggerMiddleware).toSelf().inSingletonScope();
 inversifyContainer.bind(LoggerService).toSelf().inSingletonScope();
 inversifyContainer.bind(JwtService).toSelf().inSingletonScope();
 inversifyContainer.bind(KafkaProducerService).toSelf().inSingletonScope();
+inversifyContainer.bind(KafkaConsumerService).toSelf().inSingletonScope();
 
 // repositories
 inversifyContainer.bind(UserRepository).toSelf().inSingletonScope();

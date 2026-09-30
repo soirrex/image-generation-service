@@ -2,13 +2,7 @@ import { inject, injectable } from "inversify";
 import { Producer } from "kafkajs";
 import { KafkaConfig } from "../config/kafka.config.js";
 import { LoggerService } from "./logger.service.js";
-
-export interface ProducerMessage<T = unknown> {
-  key?: string;
-  value: T;
-  headers?: Record<string, string>;
-  partition?: number;
-}
+import { EnvConfig } from "../config/env.config.js";
 
 @injectable()
 export class KafkaProducerService {
@@ -17,6 +11,7 @@ export class KafkaProducerService {
   constructor(
     @inject(KafkaConfig) private kafkaConfig: KafkaConfig,
     @inject(LoggerService) private logger: LoggerService,
+    @inject(EnvConfig) private envConfig: EnvConfig,
   ) {
     this.producer = this.kafkaConfig.getKafka().producer({
       idempotent: true,
@@ -41,7 +36,7 @@ export class KafkaProducerService {
 
   async sendImageGenerationRequest(id: string, name: string, prompt: string): Promise<void> {
     await this.producer.send({
-      topic: "image-generation",
+      topic: this.envConfig.getOrThrow("KAFKA_PRODUCER_TOPIC"),
       messages: [
         {
           key: id,
