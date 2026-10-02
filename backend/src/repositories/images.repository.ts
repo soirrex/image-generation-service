@@ -7,6 +7,8 @@ export interface Image {
   name: string;
   prompt: string;
   status: "generation" | "failed" | "completed";
+  image_url: string | null;
+  error: string | null;
   completedAt: Date | null;
   updatedAt: Date;
   createdAt: Date;
@@ -19,6 +21,8 @@ export class ImagesRepository {
     name: true,
     prompt: true,
     status: true,
+    image_url: true,
+    error: true,
     completedAt: true,
     updatedAt: true,
     createdAt: true,
@@ -111,5 +115,31 @@ export class ImagesRepository {
         userId: userId,
       },
     });
+  }
+
+  async updateToGeneratedById(id: bigint, image_url: string | null, error?: string) {
+    if (error) {
+      await prisma.image.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: "failed",
+          completedAt: new Date(),
+          error: error,
+        },
+      });
+    } else {
+      await prisma.image.update({
+        where: {
+          id: id,
+        },
+        data: {
+          status: "completed",
+          completedAt: new Date(),
+          image_url: image_url,
+        },
+      });
+    }
   }
 }

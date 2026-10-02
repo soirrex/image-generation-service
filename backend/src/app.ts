@@ -9,6 +9,7 @@ import { ErrorMiddleware } from "./middlewares/error.middleware.js";
 import { EnvConfig } from "./config/env.config.js";
 import { RequestLoggerMiddleware } from "./middlewares/request_logger.middleware.js";
 import { ApiControllerBase } from "./common/classes/api_controller.class.js";
+import { KafkaConsumerService } from "./services/kafka.consumer.service.js";
 
 @injectable()
 export class App {
@@ -19,6 +20,7 @@ export class App {
     @inject(LoggerService) private logger: LoggerService,
     @inject(ErrorMiddleware) private errorMiddleware: ErrorMiddleware,
     @inject(RequestLoggerMiddleware) private requestLogger: RequestLoggerMiddleware,
+    @inject(KafkaConsumerService) private kafkaConsumer: KafkaConsumerService,
     @multiInject(ApiControllerBase) private apiControllers: ApiControllerBase[],
   ) {
     this.app = express();
@@ -29,7 +31,7 @@ export class App {
     return this.app;
   }
 
-  private initMiddlewaresAndRoutes() {
+  private async initMiddlewaresAndRoutes() {
     this.app.use(express.json());
     this.app.use(cookieParser());
 
@@ -65,6 +67,8 @@ export class App {
     }
 
     this.app.use(this.errorMiddleware.handle);
+
+    await this.kafkaConsumer.consumeImageResults();
   }
 
   async start(port: number) {
