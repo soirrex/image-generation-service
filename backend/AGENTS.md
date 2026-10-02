@@ -12,7 +12,7 @@
 - InversifyJS (`reflect-metadata`)
 - JWT (`jsonwebtoken`), pino + pino-pretty logging
 - Swagger (`swagger-jsdoc`, `swagger-ui-express`), Joi for request validation
-- Kafka (`kafkajs`), image generation requests to the `image-generation` topic
+- Kafka (`kafkajs`), image generation requests and get image generation result
 - Jest + ts-jest + supertest for tests
 
 ## Structure
@@ -51,7 +51,8 @@ src/
 ├── services/                                    # Shared services
 │   ├── jwt.service.ts                             # JWT helper
 │   ├── logger.service.ts                          # Logger
-│   └── kafka.producer.service.ts                  # Kafka producer (image-generation topic)
+│   ├── kafka.producer.service.ts                  # Kafka producer (image generation requests)
+│   └── kafka.consumer.service.ts                  # Kafka consumer (image generation results → update Image status)
 │
 ├── generated/                                   # Generated Prisma client
 │
