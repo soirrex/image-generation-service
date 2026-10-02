@@ -39,7 +39,9 @@ model Image {
   name        String
   prompt      String
   status      IMAGE_STATUS @default(generation)
+  image_url   String?
   completedAt DateTime?
+  error       String?
 
   imageOutboxes ImageOutbox[]
 
