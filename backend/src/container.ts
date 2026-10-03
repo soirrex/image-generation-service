@@ -17,6 +17,7 @@ import { ImagesService } from "./api/images/images.service.js";
 import { UserRepository } from "./repositories/user.repository.js";
 import { ImagesRepository } from "./repositories/images.repository.js";
 import { KafkaConsumerService } from "./services/kafka.consumer.service.js";
+import { S3Config } from "./config/s3.config.js";
 
 export const inversifyContainer = new Container();
 
@@ -25,6 +26,7 @@ inversifyContainer.bind(App).toSelf().inSingletonScope();
 // config
 inversifyContainer.bind(EnvConfig).toSelf().inSingletonScope();
 inversifyContainer.bind(KafkaConfig).toSelf().inSingletonScope();
+inversifyContainer.bind(S3Config).toSelf().inSingletonScope();
 
 // middlewares
 inversifyContainer.bind(ErrorMiddleware).toSelf().inSingletonScope();
