@@ -4,6 +4,7 @@ import { ImagesRepository, Image } from "../../repositories/images.repository.js
 import { KafkaProducerService } from "../../services/kafka.producer.service.js";
 import { LoggerService } from "../../services/logger.service.js";
 import { BadRequestError, NotFoundError } from "../../common/classes/error.class.js";
+import { S3ImagesRepository } from "../../repositories/s3.images.repository.js";
 
 describe("ImagesService", () => {
   let service: ImagesService;
@@ -11,6 +12,7 @@ describe("ImagesService", () => {
   let mockImagesRepository: jest.Mocked<ImagesRepository>;
   let mockKafkaProducer: jest.Mocked<KafkaProducerService>;
   let mockLogger: jest.Mocked<LoggerService>;
+  let mockS3ImageRespository: jest.Mocked<S3ImagesRepository>;
 
   const userId = "user-1";
 
@@ -25,6 +27,8 @@ describe("ImagesService", () => {
     prompt: "A beautiful landscape with mountains and a lake",
     status: "generation",
     completedAt: null,
+    imageUrl: null,
+    error: null,
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
     createdAt: new Date("2026-01-01T00:00:00.000Z"),
   };
@@ -51,10 +55,15 @@ describe("ImagesService", () => {
       debug: jest.fn(),
     } as unknown as jest.Mocked<LoggerService>;
 
+    mockS3ImageRespository = {
+      deleteImage: jest.fn(),
+    } as unknown as jest.Mocked<S3ImagesRepository>;
+
     service = new ImagesService(
       mockImagesRepository as ImagesRepository,
       mockKafkaProducer as KafkaProducerService,
       mockLogger as LoggerService,
+      mockS3ImageRespository as S3ImagesRepository,
     );
   });
 
@@ -194,6 +203,7 @@ describe("ImagesService", () => {
         );
 
         expect(mockImagesRepository.getById).not.toHaveBeenCalled();
+        expect(mockS3ImageRespository.deleteImage).not.toHaveBeenCalled();
         expect(mockImagesRepository.deleteById).not.toHaveBeenCalled();
       },
     );
@@ -206,16 +216,32 @@ describe("ImagesService", () => {
       );
 
       expect(mockImagesRepository.getById).toHaveBeenCalledWith(userId, BigInt(1));
+      expect(mockS3ImageRespository.deleteImage).not.toHaveBeenCalled();
       expect(mockImagesRepository.deleteById).not.toHaveBeenCalled();
     });
 
-    it("should delete image and return success message", async () => {
+    it("should delete image and return success message is imageUrl is null", async () => {
       mockImagesRepository.getById.mockResolvedValue(mockImage);
       mockImagesRepository.deleteById.mockResolvedValue(undefined);
 
       const result = await service.deleteById(userId, "1");
 
       expect(mockImagesRepository.getById).toHaveBeenCalledWith(userId, BigInt(1));
+      expect(mockS3ImageRespository.deleteImage).not.toHaveBeenCalled();
+      expect(mockImagesRepository.deleteById).toHaveBeenCalledWith(userId, BigInt(1));
+      expect(result).toEqual({ message: "Image was deleted successfully" });
+    });
+
+    it("should delete image and return success message is imageUrl not null", async () => {
+      mockImagesRepository.getById.mockResolvedValue(mockImage);
+      mockImagesRepository.deleteById.mockResolvedValue(undefined);
+
+      mockImage["imageUrl"] = "randomUrl";
+
+      const result = await service.deleteById(userId, "1");
+
+      expect(mockImagesRepository.getById).toHaveBeenCalledWith(userId, BigInt(1));
+      expect(mockS3ImageRespository.deleteImage).toHaveBeenCalledWith("randomUrl");
       expect(mockImagesRepository.deleteById).toHaveBeenCalledWith(userId, BigInt(1));
       expect(result).toEqual({ message: "Image was deleted successfully" });
     });
@@ -228,6 +254,7 @@ describe("ImagesService", () => {
       const result = await service.deleteById(userId, bigId);
 
       expect(mockImagesRepository.getById).toHaveBeenCalledWith(userId, BigInt(bigId));
+      expect(mockS3ImageRespository.deleteImage).toHaveBeenCalledWith("randomUrl");
       expect(mockImagesRepository.deleteById).toHaveBeenCalledWith(userId, BigInt(bigId));
       expect(result).toEqual({ message: "Image was deleted successfully" });
     });

@@ -95,13 +95,7 @@ export class ImagesService {
       const imageUrlSplit = image.imageUrl.split("/");
       const imageKey = imageUrlSplit[imageUrlSplit.length - 1];
 
-      try {
-        await this.s3ImageRespository.deleteImage(imageKey!);
-      } catch {
-        this.logger.error(
-          `Failed to delete image from s3. ID in postgres: ${image.id}, image url: ${image.imageUrl}`,
-        );
-      }
+      await this.s3ImageRespository.deleteImage(imageKey!);
     }
 
     await this.imagesRepository.deleteById(userId, imageIdBigint);
