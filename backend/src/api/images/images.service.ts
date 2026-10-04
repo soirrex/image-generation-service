@@ -91,15 +91,15 @@ export class ImagesService {
 
     if (!image) throw new NotFoundError("Image not found");
 
-    if (image.image_url) {
-      const imageUrlSplit = image.image_url.split("/");
+    if (image.imageUrl) {
+      const imageUrlSplit = image.imageUrl.split("/");
       const imageKey = imageUrlSplit[imageUrlSplit.length - 1];
 
       try {
         await this.s3ImageRespository.deleteImage(imageKey!);
       } catch {
         this.logger.error(
-          `Failed to delete image from s3. ID in postgres: ${image.id}, image url: ${image.image_url}`,
+          `Failed to delete image from s3. ID in postgres: ${image.id}, image url: ${image.imageUrl}`,
         );
       }
     }

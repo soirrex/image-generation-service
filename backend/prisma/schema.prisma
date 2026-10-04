@@ -39,7 +39,7 @@ model Image {
   name        String
   prompt      String
   status      IMAGE_STATUS @default(generation)
-  image_url   String?
+  imageUrl    String?
   completedAt DateTime?
   error       String?
 

@@ -68,11 +68,23 @@ const options: swaggerJsdoc.Options = {
               enum: ["generation", "failed", "completed"],
               example: "generation",
             },
+            imageUrl: {
+              type: "string",
+              format: "url",
+              nullable: true,
+              example: null,
+            },
             completedAt: {
               type: "string",
               format: "date-time",
               nullable: true,
               example: null,
+            },
+            error: {
+              type: "string",
+              nullable: true,
+              example: null,
+              description: "If it's not null, there's an error in the image",
             },
             createdAt: {
               type: "string",
