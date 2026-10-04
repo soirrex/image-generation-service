@@ -4,6 +4,7 @@ import { BadRequestError, NotFoundError } from "../../common/classes/error.class
 import { ImagesRepository } from "../../repositories/images.repository.js";
 import { KafkaProducerService } from "../../services/kafka.producer.service.js";
 import { LoggerService } from "../../services/logger.service.js";
+import { S3ImagesRepository } from "../../repositories/s3.images.repository.js";
 
 const GenerateImageSchema = Joi.object({
   name: Joi.string().required().min(1).max(100).trim(),
@@ -21,6 +22,7 @@ export class ImagesService {
     @inject(ImagesRepository) private imagesRepository: ImagesRepository,
     @inject(KafkaProducerService) private kafkaProducer: KafkaProducerService,
     @inject(LoggerService) private logger: LoggerService,
+    @inject(S3ImagesRepository) private s3ImageRespository: S3ImagesRepository,
   ) {}
 
   async generate(userId: string, body: object): Promise<object> {
@@ -88,6 +90,19 @@ export class ImagesService {
     const image = await this.imagesRepository.getById(userId, imageIdBigint);
 
     if (!image) throw new NotFoundError("Image not found");
+
+    if (image.image_url) {
+      const imageUrlSplit = image.image_url.split("/");
+      const imageKey = imageUrlSplit[imageUrlSplit.length - 1];
+
+      try {
+        await this.s3ImageRespository.deleteImage(imageKey!);
+      } catch {
+        this.logger.error(
+          `Failed to delete image from s3. ID in postgres: ${image.id}, image url: ${image.image_url}`,
+        );
+      }
+    }
 
     await this.imagesRepository.deleteById(userId, imageIdBigint);
 
