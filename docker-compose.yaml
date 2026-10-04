@@ -1,0 +1,176 @@
+services:
+  postgres-images:
+    image: postgres:latest
+    container_name: postgres-images
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "app"
+    ports:
+      - "5432:5432"
+    networks:
+      - images-network
+
+  seaweedfs-images:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-images
+    ports:
+      - "8333:8333"
+      - "8888:8888"
+      - "9333:9333"
+    environment:
+      S3_ACCESS_KEY: "admin"
+      S3_SECRET_KEY: "admin123"
+    networks:
+      - images-network
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        (
+          until printf "s3.bucket.create -name images\ns3.anonymous.set -bucket images -access Read\n" | weed shell -master=localhost:9333
+          do
+            echo 'Waiting for SeaweedFS to start...'
+            sleep 2
+          done
+          echo 'Bucket images created and public read configured!'
+        ) &
+        exec weed server -s3
+
+  kafka-controller-images:
+    image: apache/kafka:latest
+    container_name: kafka-controller-images
+    environment:
+      CLUSTER_ID: f8723412-b8f4-4c26-9f37-4ff20dbdee51
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: controller
+
+      KAFKA_LISTENERS: CONTROLLER://:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-images:9093
+    networks:
+      - images-network
+
+  kafka-broker-images:
+    image: apache/kafka:latest
+    container_name: kafka-broker-images
+    ports:
+      - "9092:9092"
+    depends_on:
+      - kafka-controller-images
+    environment:
+      CLUSTER_ID: f8723412-b8f4-4c26-9f37-4ff20dbdee51
+      KAFKA_NODE_ID: 2
+      KAFKA_PROCESS_ROLES: broker
+
+      KAFKA_LISTENERS: PLAINTEXT://:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-images:9092
+
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-controller-images:9093
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        (
+          echo "Waiting for Kafka broker to start..."
+          until /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list > /dev/null 2>&1
+          do
+            sleep 2
+          done
+
+          echo "Kafka is ready! Creating topics..."
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic image-generation
+          /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --create --if-not-exists --topic image-result
+          echo "Topics created successfully!"
+        ) &
+        exec /etc/kafka/docker/run
+    networks:
+      - images-network
+
+  main-backend:
+    build: ./backend/.
+    container_name: main-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - kafka-broker-images
+      - kafka-controller-images
+      - postgres-images
+      - seaweedfs-images
+    environment:
+      JWT_SECRET: jwt-secter
+      DEV_MODE: true
+      DATABASE_URL: postgresql://postgres:postgres@postgres-images:5432/app
+
+      KAFKA_CLIENT_ID: main-backend
+      KAFKA_BROKERS: kafka-broker-images:9092
+      KAFKA_GROUP_ID: main-backend
+
+      KAFKA_PRODUCER_TOPIC: image-generation
+      KAFKA_CONSUMER_TOPIC: image-result
+
+      AWS_ENDPOINT_URL: http://seaweedfs-images:8333
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: admin123
+      S3_BUCKET_NAME: images
+    command: >
+      sh -c "npx prisma migrate deploy && npm start"
+    networks:
+      - images-network
+
+  outbox-worker:
+    build: ./outbox-worker/.
+    container_name: outbox-worker
+    restart: unless-stopped
+    depends_on:
+      - kafka-broker-images
+      - kafka-controller-images
+      - postgres-images
+      - main-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres-images:5432/app
+
+      KAFKA_CLIENT_ID: outbox-worker
+      KAFKA_BROKERS: kafka-broker-images:9092
+      KAFKA_TOPIC: image-generation
+    networks:
+      - images-network
+
+  images-service:
+    build: ./images-service/.
+    container_name: images-service
+    restart: unless-stopped
+    depends_on:
+      - kafka-broker-images
+      - kafka-controller-images
+      - postgres-images
+      - seaweedfs-images
+    environment:
+      KAFKA_BROKERS: kafka-broker-images:9092
+      KAFKA_GROUP_ID: images-service
+
+      KAFKA_PRODUCER_TOPIC: image-result
+      KAFKA_CONSUMER_TOPIC: image-generation
+
+      ENDPOINT_URL: http://seaweedfs-images:8333
+      AWS_ACCESS_KEY_ID: admin
+      AWS_SECRET_ACCESS_KEY: admin123
+      S3_BUCKET_NAME: images
+
+      USE_AI: false
+    networks:
+      - images-network
+
+networks:
+  images-network:
+    driver: bridge

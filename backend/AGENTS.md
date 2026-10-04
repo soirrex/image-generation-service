@@ -45,6 +45,7 @@ src/
 │   └── request_logger.middleware.ts               # Request logger
 │
 ├── repositories/                                # DB layer
+│   ├── s3.images.repository.ts                    # Images storage in s3
 │   ├── user.repository.ts                         # User storage
 │   └── images.repository.ts                       # Image + outbox storage
 │

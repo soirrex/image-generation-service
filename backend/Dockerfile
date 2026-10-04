@@ -3,11 +3,13 @@ FROM node:24.18.1
 WORKDIR /backend
 
 COPY package*.json ./
+COPY prisma ./prisma/
 
 RUN npm i
 
-COPY ./ ./
+COPY . .
 
 RUN npx prisma generate
+RUN npm run build
 
-CMD ["sh", "-c", "npm run build && npm start"]
+CMD ["npm", "start"]
