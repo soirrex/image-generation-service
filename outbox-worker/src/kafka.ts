@@ -3,7 +3,7 @@ import type { LoggerService } from "./logger.js";
 
 export class KafkaProducer {
   private producer: Producer;
-  private TOPIC = "image-generation";
+  private topic: string | undefined;
 
   public readonly kafka: Kafka;
   public readonly brokers: string[];
@@ -19,6 +19,9 @@ export class KafkaProducer {
 
     this.brokers = process.env.KAFKA_BROKERS.split(",").map((b) => b.trim());
     this.clientId = process.env.KAFKA_CLIENT_ID;
+    this.topic = process.env.KAFKA_TOPIC;
+
+    if (!this.topic) throw new Error("KAFKA_TOPIC is required in .env");
 
     this.kafka = new Kafka({
       clientId: this.clientId,
@@ -54,7 +57,7 @@ export class KafkaProducer {
 
   async send(id: string, value: Record<string, unknown>): Promise<void> {
     await this.producer.send({
-      topic: "image-generation",
+      topic: this.topic!,
       messages: [
         {
           key: id,
