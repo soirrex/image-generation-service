@@ -24,6 +24,6 @@ export class S3ImagesRepository {
       }),
     );
 
-    this.logger.info(`Delete element from s3 successfully. Key: ${imageKey}`);
+    this.logger.info(`Delete element from s3 successfully`, { key: imageKey });
   }
 }

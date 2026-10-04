@@ -77,6 +77,17 @@ export class ImagesRepository {
     return image;
   }
 
+  async getByIdWithoutUserId(imageId: bigint): Promise<Image | null> {
+    const image = await prisma.image.findFirst({
+      where: {
+        id: imageId,
+      },
+      select: this.selectedImageData,
+    });
+
+    return image;
+  }
+
   async getAllByUserId(
     userId: string,
     limit: number,
