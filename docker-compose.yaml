@@ -109,7 +109,10 @@ services:
       - seaweedfs-images
     environment:
       JWT_SECRET: jwt-secter
+      ALLOWED_URLS: "http://localhost:5173"
+
       DEV_MODE: true
+
       DATABASE_URL: postgresql://postgres:postgres@postgres-images:5432/app
 
       KAFKA_CLIENT_ID: main-backend
