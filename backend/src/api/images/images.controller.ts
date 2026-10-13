@@ -112,7 +112,7 @@ export class ImagesController extends ApiControllerBase {
      *                   type: integer
      *                   example: 4
      *                   description: Total number of pages
-     *                 curentPage:
+     *                 currentPage:
      *                   type: integer
      *                   example: 1
      *                   description: Current page number

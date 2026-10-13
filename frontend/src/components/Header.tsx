@@ -16,11 +16,11 @@ export function Header() {
     try {
       await logout();
     } catch {
-      // Even if the server returns an error, log out locally
+      //
     } finally {
       clearIsAuthed();
       setIsLoggingOut(false);
-      navigate("/");
+      navigate("/register");
     }
   };
 

@@ -66,7 +66,7 @@ export class ImagesService {
 
     const result = {
       totalPages: images.totalPages,
-      curentPage: images.currentPage,
+      currentPage: images.currentPage,
       images: images.images.map((el) => ({
         ...el,
         id: el.id.toString(),

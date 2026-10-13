@@ -2,9 +2,21 @@ import { useCallback, useState } from "react";
 
 type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
 
-interface ApiErrorBody {
-  error?: string;
-  message?: string;
+export class ApiError extends Error {
+  status: number;
+  error: string;
+
+  constructor(status: number, message: string, error: string) {
+    super(message);
+    this.status = status;
+    this.error = error;
+  }
+}
+
+export interface ApiErrorBody {
+  message: string;
+  error: string;
+  status: number;
 }
 
 export interface MessageResponse {
@@ -23,13 +35,25 @@ async function request<T>(method: Method, path: string, body?: object): Promise<
 
   if (!response.ok) {
     const text = await response.text();
-    let parsed: ApiErrorBody | undefined;
+    let parsed: { message?: unknown; error?: unknown; statusCode?: unknown } | undefined;
     try {
-      parsed = text ? (JSON.parse(text) as ApiErrorBody) : undefined;
+      parsed = text ? (JSON.parse(text) as typeof parsed) : undefined;
     } catch {
       parsed = undefined;
     }
-    throw new Error(parsed?.message ?? parsed?.error ?? `Request failed: ${response.status}`);
+
+    const message =
+      typeof parsed?.message === "string" && parsed.message.length > 0
+        ? parsed.message
+        : `Request failed: ${response.status}`;
+    const error =
+      typeof parsed?.error === "string" && parsed.error.length > 0
+        ? parsed.error
+        : response.status >= 500
+          ? "Internal Server Error"
+          : "Bad Request";
+
+    throw new ApiError(response.status, message, error);
   }
 
   const text = await response.text();
@@ -38,7 +62,7 @@ async function request<T>(method: Method, path: string, body?: object): Promise<
 
 export function useApi() {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiErrorBody | null>(null);
 
   const clearError = useCallback(() => setError(null), []);
 
@@ -49,7 +73,9 @@ export function useApi() {
       return await request<T>(method, path, body);
     } catch (e) {
       const message = e instanceof Error ? e.message : "Unknown error";
-      setError(message);
+      const error = e instanceof ApiError ? e.error : "Unknown error";
+      const status = e instanceof ApiError ? e.status : 500;
+      setError({ status: status, message: message, error: error });
       throw e;
     } finally {
       setIsLoading(false);

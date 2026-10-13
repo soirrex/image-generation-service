@@ -43,7 +43,7 @@ const options: swaggerJsdoc.Options = {
               example: "My image",
               description: "Image name",
             },
-            promt: {
+            prompt: {
               type: "string",
               minLength: 10,
               maxLength: 1000,
