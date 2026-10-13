@@ -8,14 +8,17 @@ from .logger import LoggerService
 
 class S3Service:
     def __init__(self, logger: LoggerService):
-        self._endpoint_url = os.getenv("ENDPOINT_URL")
+        self._endpoint_url = os.getenv("AWS_ENDPOINT_URL")
+        self._bucket_endpoint_url = os.getenv("BUCKET_ENDPOINT_URL")
         aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
         aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 
         self._bucket_name = os.getenv("S3_BUCKET_NAME")
 
         if not self._endpoint_url:
-            raise ValueError("ENDPOINT_URL is required in .env")
+            raise ValueError("AWS_ENDPOINT_URL is required in .env")
+        if not self._bucket_endpoint_url:
+            raise ValueError("BUCKET_ENDPOINT_URL is required in .env")
         if not aws_access_key_id:
             raise ValueError("AWS_ACCESS_KEY_ID is required in .env")
         if not aws_secret_access_key:
@@ -60,6 +63,6 @@ class S3Service:
             self._logger.error(message, name=name, bucket=self._bucket_name)
             raise Exception(message)
 
-        url = f"{self._endpoint_url}/{self._bucket_name}/{name}"
+        url = f"{self._bucket_endpoint_url}/{self._bucket_name}/{name}"
         self._logger.info("Image uploaded to S3", name=name, url=url)
         return url

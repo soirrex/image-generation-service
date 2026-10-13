@@ -18,25 +18,38 @@ services:
       - "8333:8333"
       - "8888:8888"
       - "9333:9333"
+    command: "server -s3 -filer"
     environment:
-      S3_ACCESS_KEY: "admin"
-      S3_SECRET_KEY: "admin123"
+      AWS_ACCESS_KEY_ID: "admin"
+      AWS_SECRET_ACCESS_KEY: "admin123"
     networks:
       - images-network
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        (
-          until printf "s3.bucket.create -name images\ns3.anonymous.set -bucket images -access Read\n" | weed shell -master=localhost:9333
-          do
-            echo 'Waiting for SeaweedFS to start...'
-            sleep 2
-          done
-          echo 'Bucket images created and public read configured!'
-        ) &
-        exec weed server -s3
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -f http://localhost:8888/ > /dev/null 2>&1 || exit 1",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
 
+  create-bucket:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs-init-bucket
+    depends_on:
+      seaweedfs-images:
+        condition: service_healthy
+    networks:
+      - images-network
+    entrypoint: >
+      sh -c "
+      echo 'init images bucket' &&
+      echo 's3.bucket.create -name images' | weed shell -master=seaweedfs-images:9333 &&
+      echo 's3.anonymous.set -bucket images -access Read' | weed shell -master=seaweedfs-images:9333 &&
+      echo 'Init was successfully'
+      "
   kafka-controller-images:
     image: apache/kafka:latest
     container_name: kafka-controller-images
@@ -156,7 +169,6 @@ services:
     depends_on:
       - kafka-broker-images
       - kafka-controller-images
-      - postgres-images
       - seaweedfs-images
     environment:
       KAFKA_BROKERS: kafka-broker-images:9092
@@ -165,9 +177,12 @@ services:
       KAFKA_PRODUCER_TOPIC: image-result
       KAFKA_CONSUMER_TOPIC: image-generation
 
-      ENDPOINT_URL: http://seaweedfs-images:8333
+      BUCKET_ENDPOINT_URL: http://localhost:8333
+      AWS_ENDPOINT_URL: http://seaweedfs-images:8333
       AWS_ACCESS_KEY_ID: admin
       AWS_SECRET_ACCESS_KEY: admin123
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
       S3_BUCKET_NAME: images
 
       USE_AI: false
