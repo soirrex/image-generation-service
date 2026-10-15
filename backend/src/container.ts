@@ -9,6 +9,7 @@ import { LoggerService } from "./services/logger.service.js";
 import { JwtService } from "./services/jwt.service.js";
 import { KafkaProducerService } from "./services/kafka.producer.service.js";
 import { KafkaConfig } from "./config/kafka.config.js";
+import { KafkaConsumerConfig } from "./config/kafka.consumer.config.js";
 import { ApiControllerBase } from "./common/classes/api_controller.class.js";
 import { AuthController } from "./api/auth/auth.controller.js";
 import { AuthService } from "./api/auth/auth.service.js";
@@ -27,6 +28,7 @@ inversifyContainer.bind(App).toSelf().inSingletonScope();
 // config
 inversifyContainer.bind(EnvConfig).toSelf().inSingletonScope();
 inversifyContainer.bind(KafkaConfig).toSelf().inSingletonScope();
+inversifyContainer.bind(KafkaConsumerConfig).toSelf().inSingletonScope();
 inversifyContainer.bind(S3Config).toSelf().inSingletonScope();
 
 // middlewares

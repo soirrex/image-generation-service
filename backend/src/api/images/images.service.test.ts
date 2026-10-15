@@ -154,7 +154,7 @@ describe("ImagesService", () => {
       const result = await service.getAll(userId, {});
 
       expect(mockImagesRepository.getAllByUserId).toHaveBeenCalledWith(userId, 25, 1);
-      expect(result).toEqual({ totalPages: 0, curentPage: 1, images: [] });
+      expect(result).toEqual({ totalPages: 0, currentPage: 1, images: [] });
     });
 
     it("should return paginated images with string ids", async () => {
@@ -173,7 +173,7 @@ describe("ImagesService", () => {
       expect(mockImagesRepository.getAllByUserId).toHaveBeenCalledWith(userId, 10, 2);
       expect(result).toEqual({
         totalPages: 5,
-        curentPage: 2,
+        currentPage: 2,
         images: [
           { ...images[0], id: "1" },
           { ...images[1], id: "2" },
