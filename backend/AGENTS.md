@@ -37,6 +37,7 @@ src/
 ├── config/                                      # App config
 │   ├── env.config.ts                              # Env helper
 │   ├── kafka.config.ts                            # Kafka client + brokers config
+│   ├── kafka.consumer.config.ts                            # Kafka config for consumer
 │   └── swagger.config.ts                          # Swagger spec
 │
 ├── middlewares/                                 # Express middlewares
