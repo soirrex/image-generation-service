@@ -4,9 +4,9 @@ const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "MiniApp API",
+      title: "App API",
       version: "1.0.0",
-      description: "API documentation for the Telegram MiniApp",
+      description: "API documentation",
     },
     servers: [
       {
