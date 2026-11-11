@@ -50,6 +50,19 @@ services:
       echo 's3.anonymous.set -bucket images -access Read' | weed shell -master=seaweedfs-images:9333 &&
       echo 'Init was successfully'
       "
+  redis-images:
+    image: redis:latest
+    container_name: redis-images
+    ports:
+      - "6379:6379"
+    networks:
+      - images-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   kafka-controller-images:
     image: apache/kafka:latest
     container_name: kafka-controller-images
@@ -170,9 +183,13 @@ services:
       - kafka-broker-images
       - kafka-controller-images
       - seaweedfs-images
+      - redis-images
     environment:
       KAFKA_BROKERS: kafka-broker-images:9092
       KAFKA_GROUP_ID: images-service
+
+      REDIS_HOST: redis-images
+      REDIS_PORT: "6379"
 
       KAFKA_PRODUCER_TOPIC: image-result
       KAFKA_CONSUMER_TOPIC: image-generation
