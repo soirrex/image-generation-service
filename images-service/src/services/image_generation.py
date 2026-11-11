@@ -61,7 +61,7 @@ class ImageGeneration:
             else:
                 image = Image.open("default_image.png")
         except Exception:
-            self._logger.exception("Image generation failed", prompt=prompt)
+            self._logger.error("Image generation failed", prompt=prompt)
             raise RuntimeError("Image generation error")
 
         self._logger.info(
