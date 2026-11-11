@@ -1,6 +1,7 @@
 import asyncio
 from dotenv import load_dotenv
 
+from .services.redis import RedisService
 from .services.logger import LoggerService
 from .kafka.kafka_producer import KafkaProducerService
 from .services.s3 import S3Service
@@ -14,8 +15,11 @@ async def main():
     logger = LoggerService()
     image_generation = ImageGeneration(logger)
     s3 = S3Service(logger)
+    redis = RedisService(logger)
     kafka_producer = KafkaProducerService(logger)
-    kafka_consumer = KafkaConsumerService(logger, image_generation, s3, kafka_producer)
+    kafka_consumer = KafkaConsumerService(
+        logger, image_generation, s3, kafka_producer, redis
+    )
 
     logger.info("All services initialized, starting Kafka consumer")
     kafka_consumer.listen()

@@ -2,8 +2,9 @@ from kafka import KafkaConsumer
 import os
 import json
 from pydantic import BaseModel, ValidationError
-import uuid
 import time
+
+from ..services.redis import RedisService
 
 from ..services.logger import LoggerService
 from ..kafka.kafka_producer import KafkaProducerService
@@ -12,7 +13,6 @@ from ..services.image_generation import ImageGeneration
 
 
 class MessageData(BaseModel):
-    id: str
     name: str
     prompt: str
 
@@ -24,6 +24,7 @@ class KafkaConsumerService:
         image_generation: ImageGeneration,
         s3: S3Service,
         kafka_producer: KafkaProducerService,
+        redis: RedisService,
     ):
         brokers = os.getenv("KAFKA_BROKERS")
         topic = os.getenv("KAFKA_CONSUMER_TOPIC")
@@ -54,6 +55,7 @@ class KafkaConsumerService:
         self._image_generation = image_generation
         self._s3 = s3
         self._kafka_producer = kafka_producer
+        self._redis = redis
 
         self._logger.info(
             "Kafka consumer created",
@@ -75,18 +77,41 @@ class KafkaConsumerService:
             )
 
             raw_value = message.value
+            key = message.key
+
+            if not key:
+                self._logger.error(
+                    "Key is NONE",
+                    topic=message.topic,
+                    partition=message.partition,
+                    offset=message.offset,
+                )
+                continue
+
+            exist = self._redis.get_idempotency(key)
+            if exist == True:
+                self._logger.info("This message in kafka already processed", key=key)
+                continue
+
+            self._redis.mark_idempotency(key)
+
             try:
                 data = MessageData.model_validate_json(raw_value)
 
                 image = self._image_generation.generate(data.prompt)
-                image_url = self._s3.upload(image, f"{uuid.uuid4()}.png")
+                image_url = self._s3.upload(image, f"{key}.png")
+
                 self._kafka_producer.send_image_result(
-                    message.key,
-                    {"id": data.id, "image_url": image_url, "message": "successfully"},
+                    key,
+                    {
+                        "id": key,
+                        "image_url": image_url,
+                        "message": "successfully",
+                    },
                 )
             except ValidationError as e:
                 self._logger.error(
-                    "Invalid message skipped: %s",
+                    "Invalid message value",
                     error=e.errors()[0]["msg"],
                     key=message.key,
                     topic=message.topic,
@@ -94,6 +119,7 @@ class KafkaConsumerService:
                     offset=message.offset,
                     value=raw_value,
                 )
+                self._redis.delete_idempotency(key)
                 continue
             except Exception:
                 self._logger.error(
@@ -103,6 +129,7 @@ class KafkaConsumerService:
                     offset=message.offset,
                     key=message.key,
                 )
+                self._redis.delete_idempotency(key)
                 continue
 
             try:
@@ -118,7 +145,6 @@ class KafkaConsumerService:
 
             self._logger.info(
                 "Message processed and committed",
-                id=data.id,
                 ky=message.key,
                 duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
             )
