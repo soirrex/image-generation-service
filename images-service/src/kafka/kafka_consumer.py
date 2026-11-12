@@ -119,6 +119,9 @@ class KafkaConsumerService:
                     offset=message.offset,
                     value=raw_value,
                 )
+                self._kafka_producer.send_image_result(
+                    key, {"id": key, "error": "Invalid value"}
+                )
                 self._redis.delete_idempotency(key)
                 continue
             except Exception:
@@ -128,6 +131,9 @@ class KafkaConsumerService:
                     partition=message.partition,
                     offset=message.offset,
                     key=message.key,
+                )
+                self._kafka_producer.send_image_result(
+                    key, {"id": key, "error": "Failed processing"}
                 )
                 self._redis.delete_idempotency(key)
                 continue
