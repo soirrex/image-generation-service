@@ -1,4 +1,6 @@
 from kafka import KafkaConsumer
+from kafka.consumer.fetcher import ConsumerRecord
+from kafka.structs import OffsetAndMetadata, TopicPartition
 import os
 import json
 from pydantic import BaseModel, ValidationError
@@ -64,6 +66,23 @@ class KafkaConsumerService:
             group_id=group_id,
         )
 
+    def _commit_message(self, message: ConsumerRecord) -> None:
+        try:
+            self._consumer.commit(
+                offsets={
+                    TopicPartition(message.topic, message.partition): OffsetAndMetadata(
+                        message.offset + 1, "", -1
+                    ),
+                }
+            )
+        except Exception:
+            self._logger.error(
+                "Failed to commit offsets",
+                topic=message.topic,
+                partition=message.partition,
+                offset=message.offset,
+            )
+
     def listen(self):
         self._logger.info("Started listening for messages")
         for message in self._consumer:
@@ -89,11 +108,9 @@ class KafkaConsumerService:
                 continue
 
             exist = self._redis.get_idempotency(key)
-            if exist == True:
+            if exist:
                 self._logger.info("This message in kafka already processed", key=key)
                 continue
-
-            self._redis.mark_idempotency(key)
 
             try:
                 data = MessageData.model_validate_json(raw_value)
@@ -109,6 +126,7 @@ class KafkaConsumerService:
                         "message": "successfully",
                     },
                 )
+                self._redis.mark_idempotency(key)
             except ValidationError as e:
                 self._logger.error(
                     "Invalid message value",
@@ -122,7 +140,7 @@ class KafkaConsumerService:
                 self._kafka_producer.send_image_result(
                     key, {"id": key, "error": "Invalid value"}
                 )
-                self._redis.delete_idempotency(key)
+                self._commit_message(message)
                 continue
             except Exception:
                 self._logger.error(
@@ -135,22 +153,12 @@ class KafkaConsumerService:
                 self._kafka_producer.send_image_result(
                     key, {"id": key, "error": "Failed processing"}
                 )
-                self._redis.delete_idempotency(key)
+                self._commit_message(message)
                 continue
 
-            try:
-                self._consumer.commit()
-            except Exception:
-                self._logger.error(
-                    "Failed to commit offsets",
-                    topic=message.topic,
-                    partition=message.partition,
-                    offset=message.offset,
-                )
-                continue
-
+            self._commit_message(message)
             self._logger.info(
                 "Message processed and committed",
-                ky=message.key,
+                key=message.key,
                 duration_ms=round((time.perf_counter() - started_at) * 1000, 2),
             )
