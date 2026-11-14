@@ -135,7 +135,7 @@ services:
       - seaweedfs-images
     environment:
       JWT_SECRET: jwt-secter
-      ALLOWED_URLS: "http://localhost:5173"
+      ALLOWED_URLS: "http://images-frontend:8080,http://localhost:8080"
 
       DEV_MODE: true
 
@@ -172,6 +172,19 @@ services:
       KAFKA_CLIENT_ID: outbox-worker
       KAFKA_BROKERS: kafka-broker-images:9092
       KAFKA_TOPIC: image-generation
+    networks:
+      - images-network
+
+  images-frontend:
+    build: ./frontend/.
+    container_name: images-frontend
+    restart: unless-stopped
+    depends_on:
+      - main-backend
+    ports:
+      - "8080:8080"
+    environment:
+      VITE_API_URL: http://main-backenda:3000
     networks:
       - images-network
 
