@@ -179,7 +179,7 @@ git clone https://github.com/soirrex/image-generation-service.git && cd image-ge
 # 2. No-GPU mode (default USE_AI=false, default_image.png is returned)
 docker compose up --build
 
-#   Frontend → http://localhost:5173
+#   Frontend → http://localhost:8080
 #   Backend  → http://localhost:3000
 #   Swagger  → http://localhost:3000/api-docs
 ```
