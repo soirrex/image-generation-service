@@ -183,8 +183,6 @@ services:
       - main-backend
     ports:
       - "8080:8080"
-    environment:
-      VITE_API_URL: http://main-backenda:3000
     networks:
       - images-network
 

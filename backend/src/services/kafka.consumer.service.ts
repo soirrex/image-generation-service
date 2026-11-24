@@ -81,6 +81,8 @@ export class KafkaConsumerService {
             return;
           }
 
+          if (image.status === "completed" && image.imageUrl) return;
+
           if (json.error) {
             await this.imagesRepository.updateToGeneratedById(imageId, null, String(json.error));
           } else if (typeof json.image_url === "string" && json.image_url.trim().length > 0) {

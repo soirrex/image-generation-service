@@ -226,6 +226,48 @@ describe("KafkaConsumerService", () => {
       expect(mockLogger.error).not.toHaveBeenCalled();
     });
 
+    it.each([[{ image_url: "https://s3.bucket/key.jpg" }], [{ error: "GPU out of memory" }], [{}]])(
+      "should skip processing if image is already completed with imageUrl: %s",
+      async (payload) => {
+        mockImagesRepository.getByIdWithoutUserId.mockResolvedValue({
+          ...mockImage,
+          status: "completed",
+          imageUrl: "https://s3.bucket/already_done.jpg",
+        });
+
+        await triggerMessage("1", JSON.stringify(payload));
+
+        expect(mockImagesRepository.getByIdWithoutUserId).toHaveBeenCalledWith(BigInt(1));
+        expect(mockImagesRepository.updateToGeneratedById).not.toHaveBeenCalled();
+        expect(mockS3ImageRepository.deleteImage).not.toHaveBeenCalled();
+        expect(mockLogger.error).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      [{ status: "completed", imageUrl: null }],
+      [{ status: "failed", imageUrl: "https://s3.bucket/old.jpg" }],
+    ] as const)(
+      "should process payload if image is not completed with imageUrl: %s",
+      async (imageState) => {
+        mockImagesRepository.getByIdWithoutUserId.mockResolvedValue({
+          ...mockImage,
+          ...imageState,
+        });
+        mockImagesRepository.updateToGeneratedById.mockResolvedValue(undefined);
+
+        const imageUrl = "https://s3.bucket/new.jpg";
+        await triggerMessage("1", JSON.stringify({ image_url: imageUrl }));
+
+        expect(mockImagesRepository.updateToGeneratedById).toHaveBeenCalledWith(
+          BigInt(1),
+          imageUrl,
+        );
+        expect(mockS3ImageRepository.deleteImage).not.toHaveBeenCalled();
+        expect(mockLogger.error).not.toHaveBeenCalled();
+      },
+    );
+
     it.each([[{}], [{ image_url: "" }], [{ image_url: "   " }]])(
       "should mark image as failed if successful payload missing valid image_url: %s",
       async (payload) => {
